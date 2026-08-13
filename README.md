@@ -1,57 +1,87 @@
-# 🤖 Orquestrador Inteligente de Atendimento via WhatsApp
+# 🤖 Assistente Virtual IA - Indústria de Panificação
 
-Um sistema automatizado de atendimento ao cliente via WhatsApp, construído com Agentes de Inteligência Artificial e Google Sheets. Este projeto foi desenhado como uma solução em nuvem ágil e acessível para pequenos e médios negócios, utilizando uma arquitetura de múltiplos agentes para orquestrar pedidos, cadastros e dúvidas sem a necessidade de um banco de dados complexo neste estágio inicial.
-
-## 📌 Visão Geral
-
-O sistema recebe as mensagens do cliente pelo WhatsApp (incluindo suporte a transcrição de áudio), processa a intenção do usuário através de um **Agente Orquestrador** principal e direciona a solicitação para subagentes especializados. O banco de dados é mantido no Google Sheets, permitindo que os donos do negócio gerenciem produtos, preços, clientes e pedidos de forma visual e familiar.
-
-## 🏗️ Arquitetura do Sistema
-
-O fluxo é gerenciado por uma ferramenta de automação (como n8n) que orquestra as seguintes etapas:
-1. **Gatilho (WhatsApp):** Recebe mensagens de texto e áudio.
-2. **Processamento de Áudio:** Se for áudio, converte para texto.
-3. **Agente Orquestrador (IA):** Analisa a intenção da mensagem e invoca a ferramenta (subagente) correta.
-4. **Subagentes:** Executam tarefas específicas de leitura e escrita no Google Sheets ou no Documento de FAQ.
-5. **Resposta:** O Orquestrador formula uma resposta amigável, clara e objetiva para o cliente no WhatsApp.
-
-## 🧠 Agentes e Ferramentas
-
-O coração do sistema é composto pelo **Agente Orquestrador** que delega tarefas para 4 subagentes especializados:
-
-### 1. 🔍 Agente de Verificação de Cadastro
-* **Função:** Consulta a base de clientes no Google Sheets (por CPF, CNPJ ou telefone).
-* **Segurança:** Retorna estritamente o *nome da empresa* encontrada, preservando a privacidade do cliente. Solicitações de alteração de dados são sempre repassadas ao atendimento humano.
-
-### 2. 📝 Agente de Cadastro
-* **Função:** Ativado quando um novo cliente chega ou quando a Verificação de Cadastro não encontra registros.
-* **Ação:** Coleta os dados faltantes de forma conversacional e insere (append) uma nova linha na aba de "Clientes Cadastrados" do Google Sheets.
-
-### 3. 🛒 Agente de Pedidos
-* **Função:** Responsável por registrar as compras.
-* **Ação:** Lê os produtos disponíveis, pode calcular totais (usando a ferramenta de Calculadora) e insere o novo pedido na aba "Pedidos" do Google Sheets.
-* **Regra:** Só pode ser acionado se o cliente já possuir um cadastro confirmado.
-
-### 4. ❓ Agente FAQ (Dúvidas Gerais)
-* **Função:** Responde a perguntas sobre a empresa (horários, localização, regras).
-* **Ação:** Consulta um documento de texto (Google Docs) contendo o FAQ da empresa e também lê a tabela de "Produtos" para informar preços e descrições atualizadas (ex: pães, doces e salgados).
-
-## 🗄️ Banco de Dados Leve (Google Workspace)
-
-Para manter o custo baixo e a facilidade de uso para os gestores, o banco de dados está estruturado diretamente no Google Drive:
-* **Google Sheets (`Digu Data`):** Possui abas como `Produtos` (com Nome, Categoria, Descrição e Preço), `Clientes Cadastrados` e `Pedidos`. O sistema tem permissão para ler catálogos e escrever novos cadastros/pedidos.
-* **Google Docs (`FAQ D'gusta`):** Um arquivo simples contendo as políticas, horários e informações institucionais lidas pela IA.
-
-## 🛡️ Políticas e Segurança
-* **Foco na Privacidade:** Nenhuma informação sensível do cliente (histórico, endereço, telefones adicionais) é exposta no chat pela IA.
-* **Atendimento Humano (Transbordo):** Caso o cliente queira falar com um humano, ou necessite alterar dados sensíveis, a IA o instrui a digitar o comando exato: `falar com atendente`. Quando essa mensagem é detectada, a IA para de responder e o fluxo é repassado para a equipe da loja.
-* **Prevenção de Alucinação:** O Orquestrador é instruído a nunca inventar dados. Se a informação não estiver no FAQ ou na tabela, ele não tentará adivinhar.
-
-## 🛠️ Tecnologias Utilizadas
-* **Plataforma de Automação:** n8n (para orquestrar os fluxos visuais).
-* **Modelos de IA:** LLMs para conversação, raciocínio (Agentes) e conversão de Áudio para Texto.
-* **Banco de Dados / Armazenamento:** APIs do Google Sheets e Google Drive.
-* **Mensageria:** API do WhatsApp Cloud.
+Um sistema automatizado de atendimento ao cliente via WhatsApp, orquestrado no **n8n**, com inteligência artificial generativa. Este projeto foi desenvolvido para otimizar o fluxo de pedidos, responder dúvidas frequentes e gerenciar cadastros de uma indústria de panificações.
 
 ---
-*Desenvolvido como uma solução prática, escalável e inteligente para o atendimento de pequenos e médios negócios.*
+
+## 🏗️ Arquitetura e Infraestrutura
+
+O ambiente de execução foi desenhado para rodar de forma contínua e segura:
+
+*   **Docker:** O n8n é hospedado localmente via container Docker, garantindo isolamento e estabilidade da imagem da aplicação.
+*   **Ngrok:** Utilizado para criar um túnel seguro (HTTPS), expondo o ambiente local para a internet, permitindo a comunicação perfeita com os webhooks da API Oficial do WhatsApp e outras integrações externas.
+*   **Automação de Inicialização:** Um script `.bat` foi criado para garantir que a infraestrutura suba automaticamente ao ligar a máquina. Ele inicializa o Ngrok na mesma porta do n8n local e abre o navegador automaticamente no ambiente de trabalho do n8n.
+
+---
+
+## 🔄 Fluxo Central n8n e Lógica de Roteamento
+
+O fluxo foi arquitetado para ser resiliente, rápido e inteligente, suportando tanto texto quanto áudio.
+
+### 1. Recepção e Triagem (Input)
+*   **Gatilho:** Webhook recebendo dados da **API Oficial do WhatsApp**.
+*   **Ação Imediata:** Requisição HTTP POST para ativar o status de *Typing* (digitando) no WhatsApp do cliente.
+*   **Roteamento (Switch Node):**
+    *   **Caminho de Texto:** Passa por um nó `EditFields` ("JáTexto") e segue para o formatador central.
+    *   **Caminho de Áudio:** O arquivo é baixado via nó `Download Media`. Um `HTTP Request` com o token do WhatsApp extrai o arquivo, que é enviado via `HTTP Request` para a **API do Groq** (modelo `whisper-large-v3-turbo`) para transcrição ultrarrápida. O texto transcrito passa pelo nó "AgoraTexto" e segue para o formatador central.
+*   O nó `EditFields` ("Formatado") unifica as duas linhas, normalizando os dados para a lógica de negócio.
+
+### 2. Regras de Negócio e Transbordo
+*   **Transbordo Humano:** Um nó `IF` avalia se a intenção do cliente é "falar com atendente". 
+    *   Se **SIM**: A conversa é imediatamente redirecionada, uma notificação é enviada ao atendente responsável e uma mensagem de confirmação de aguardo é enviada ao cliente.
+    *   Se **NÃO**: O fluxo segue para o atendimento via IA.
+
+### 3. Controle de Latência
+*   **Subworkflow de Timeout:** Conectado antes da IA, este nó monitora o tempo de processamento. Se a resposta da IA levar mais de 20 segundos, ele dispara automaticamente uma mensagem amigável: *"Aguarde só mais um instante, estou processando seu pedido"*.
+
+### 4. Inteligência Artificial e Orquestração
+O cérebro do atendimento é o **Agente Orquestrador**, alimentado pelo modelo **Gemini flash 3.6**. Ele possui uma janela de contexto (memória) das últimas 20 mensagens.
+Sua instrução principal exige que ele identifique se o cliente possui cadastro antes de qualquer pedido, orquestrando o fluxo através de **5 Subagentes Especializados**:
+
+1.  **Agente de Verificação de Cadastro:** Consulta a base para validar clientes.
+2.  **Agente de Cadastro:** Adiciona novos clientes ao banco de dados.
+3.  **Agente de Perguntas Frequentes (FAQ):** Conectado ao Google Docs para ler as políticas e dúvidas comuns.
+4.  **Agente de Anotação de Pedido:** Processa e registra a solicitação de produtos.
+5.  **Agente de Alteração de Pedidos:** Gerencia modificações em pedidos previamente feitos.
+
+*Nota: Todos os agentes possuem prompts com instruções rigorosas de segurança (nível de linha) e ferramentas (Tools) para interagir com o banco de dados.*
+
+### 5. Finalização e Pós-Processamento
+Após a resposta gerada pelo Orquestrador ser enviada ao cliente:
+*   **Notificação de Alteração:** Se a IA alterou um pedido, um nó `IF` envia ao gestor: *"PEDIDO ALTERADO!"*
+*   **Notificação de Novo Pedido:** Se a IA criou um pedido, um nó `IF` envia ao gestor: *"PEDIDO NOVO ANOTADO!"*
+*   **Normalização de Dados:** Caso qualquer pedido seja criado/alterado, um `Call Subworkflow` é ativado. Ele acessa a tabela `Pedidos`, desmembra o conteúdo detalhado e reescreve na tabela `Itens Pedidos` (linha por linha, iterando a quantidade, subtotal e repetindo o `id_pedido` para garantir a atomicidade dos dados).
+
+### 6. Sistema de Alerta de Erros
+*   Um fluxo global de tratamento de erros está acoplado ao ambiente. Qualquer falha de execução nos nós dispara imediatamente um alerta via WhatsApp para o desenvolvedor, permitindo reações em tempo real.
+
+---
+
+## 🗄️ Modelagem do Banco de Dados
+
+O banco de dados foi estruturado no **Google Sheets**, utilizando IDs de 7 dígitos para garantir eficiência no armazenamento, integridade relacional e escalabilidade para futuras análises de dados (Data Analysis). O acesso ocorre via API do Google em uma pasta privada compartilhada com a diretoria.
+
+### Estrutura das Tabelas:
+
+| Tabela | Permissão da IA | Colunas |
+| :--- | :--- | :--- |
+| **Biscoitos** | Leitura | `id_biscoito`, `nome biscoito`, `categoria`, `peso_gramas_un`, `qtd_fardo`, `qtd_atacado_minimo`, `preco_fardo`, `preco_atacado`, `preco_varejo` |
+| **Pães** | Leitura | `id_pao`, `nome_pao`, `categoria`, `peso_gramas_un`, `qtd_atacado_minimo`, `preco_atacado`, `preco_varejo`, `observacao` |
+| **Clientes Cadastrados** | Leitura / Escrita | `id_cliente`, `cpf/CNPJ`, `telefone contato`, `nome empresa`, `rua&numero`, `bairro&cidade`, `data_cadastro` |
+| **Pedidos** | Leitura / Escrita | `id_pedido`, `cpf/CNPJ`, `data pedido`, `detalhamento pedido`, `total` |
+| **Itens Pedidos** | Escrita (Subworkflow) | `id_pedido`, `nome produto`, `quantidade`, `data saída`, `subtotal` |
+| **Análise** | Uso Analítico | Tabela reservada para cruzamento de dados, métricas financeiras e geração de relatórios de BI baseados nos IDs relacionais. |
+
+*(O FAQ da empresa está armazenado de forma separada em um arquivo **Google Docs**, acessado exclusivamente pelo Agente de Perguntas Frequentes).*
+
+---
+
+## 🚀 Como iniciar o projeto localmente
+
+1.  Verifique se o **Docker** está rodando em sua máquina.
+2.  Execute o arquivo `start_env.bat` (Este script irá iniciar o container do n8n, criar o túnel ngrok na mesma porta e abrir o navegador).
+3.  Atualize a URL do webhook no painel de desenvolvedores do WhatsApp Cloud API com o novo domínio gerado pelo Ngrok.
+4.  Garanta que as credenciais do Google Cloud (para as Sheets e Docs) e da API do Groq e Gemini estejam ativas no gerenciador de credenciais do n8n.
+
+---
+*Desenvolvido por: Andrew Alves Rodrigues de Souza*
