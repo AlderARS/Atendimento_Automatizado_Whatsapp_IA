@@ -1,4 +1,4 @@
-# 🤖 Agente Atendimento Integrado com Banco de Dados e WhatsApp
+# 🤖 Agente de Atendimento Integrado com Banco de Dados e WhatsApp
 
 Um sistema automatizado de atendimento ao cliente via WhatsApp, orquestrado no **n8n**, com inteligência artificial generativa. Este projeto foi desenvolvido para otimizar o fluxo de pedidos, responder dúvidas frequentes e gerenciar cadastros de uma indústria de panificações.
 
